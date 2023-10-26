@@ -11,12 +11,14 @@ const container = document.getElementById('root');
 const root = ReactDOM.createRoot(container);
 
 root.render(
-  <ChakraProvider theme={theme}>
-    <RecoilRoot>
-      <ColorModeScript />
-      <App />
-    </RecoilRoot>
-  </ChakraProvider>
+
+    <ChakraProvider theme={theme}>
+      <RecoilRoot>
+        <ColorModeScript />
+        <App />
+      </RecoilRoot>
+    </ChakraProvider>
+
 );
 
 serviceWorker.unregister();

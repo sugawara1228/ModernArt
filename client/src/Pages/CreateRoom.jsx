@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Flex,
   Button,
@@ -11,20 +11,18 @@ import {
 import Gbox from '../Components/GlassBox';
 import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
-import { useRecoilState } from 'recoil';
-import { userDataState } from '../state/userDataState';
 
 const socket = io('http://localhost:3001');
 
 function CreateRoom() {
-  const [userData, setUserData] = useRecoilState(userDataState);
+  const [userName, setUserName] = useState('');
   const navigate = useNavigate();
 
   const createRoom = () => {
     // ランダムなルームIDを生成
     const roomId = randomRoomIdCreate();
     // ルーム作成API呼び出し
-    socket.emit('createRoom', roomId, userData);
+    socket.emit('createRoom', roomId, userName);
 
     // メイン画面に移動
     navigate('/Main');
@@ -46,7 +44,7 @@ function CreateRoom() {
       <Gbox>
         <Text as="b">名前を入力して、ルームを作成してください</Text>
         <Input
-          onChange={e => setUserData(e.target.value)}
+          onChange={e => setUserName(e.target.value)}
           placeholder="ニックネーム"
           w="22rem"
           mt="5"
