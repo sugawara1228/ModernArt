@@ -31,7 +31,7 @@ function Main() {
     <Flex height="100vh" justifyContent="end" alignItems="center" px="50">
       <Gbox w="400px" h="800px" justifyContent="flex-start">
         <Text>{roomId}</Text>
-        <Text>{userData.name}</Text>
+        <Text>{userData}</Text>
         <Box position="absolute" bottom="10">
           <Box position="relative">
             <Input
