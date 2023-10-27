@@ -11,11 +11,10 @@ const io = socketIo(server, {
   },
 });
 
-// ルームを管理するためのオブジェクト
-const rooms = new Map();
-
-// ユーザー情報を管理するためのオブジェクト
-const users = new Map();
+// roomオブジェクトを格納する配列
+const rooms = [];
+// userオブジェクトを格納する配列
+const users = {};
 
 // クライアントからの接続イベントをリッスン
 io.on("connection", (socket) => {
@@ -23,47 +22,50 @@ io.on("connection", (socket) => {
 
   // ルーム作成
   socket.on("createRoom", (roomId, userName) => {
-    console.log(`roomid=>"${roomId}",userName"${userName}"`);
-    //   rooms.set(roomId, new Set());
+    users[socket.id] = {
+      roomId: roomId,
+      name: userName
+    }
+    // ルーム作成
     socket.join(roomId);
-    //   rooms.get(roomId).add(socket.id);
-    //   users.set(socket.id, { name: userName, room: roomId });
-    socket.emit("roomCreated", roomId, userName);
+    // クライアントにルーム作成完了を通知
+    socket.emit("roomJoined", roomId, userName);
     console.log(`socket.id:${socket.id}ユーザー "${userName}" がルーム "${roomId}" を作成しました`);
   });
 
-//   // ルームへの入室
-//   socket.on("joinRoom", (roomId, userName) => {
-//     if (rooms.has(roomId)) {
-//       socket.join(roomId);
-//       rooms.get(roomId).add(socket.id);
-//       users.set(socket.id, { name: userName, room: roomId });
-//       socket.emit("roomJoined", roomId, userName);
-//       console.log(`ユーザー "${userName}" がルーム "${roomId}" に入室しました`);
-//     } else {
-//       socket.emit("roomNotFound", roomId);
-//     }
-//   });
+  // ルームへの入室
+  socket.on("joinRoom", (roomId, userName) => {
+    users[socket.id] = {
+      roomId: roomId,
+      name: userName
+    }
+    //ルームに入室
+    socket.join(roomId);
+    // クライアントにルーム作成完了を通知
+    io.to(roomId).emit("roomJoined", roomId, userName);
+    console.log(`socket.id:${socket.id}ユーザー "${userName}" がルーム "${roomId}" に入室しました`);
+  });
 
   // クライアントからのメッセージをルーム内にいる全員に送信
-  socket.on("sendMessage", (roomId, userName, message) => {
-    // const user = users.get(socket.id);
-    console.log(`socket.id:${socket.id}roomID${roomId}に入室している${userName}がメッセージを送信しました。${message}`);
+  socket.on("sendMessage", (message) => {
+    roomId = users[socket.id].roomId;
+    userName = users[socket.id].name;
+    console.log(`roomID${roomId}に入室している${userName}がメッセージを送信しました。${message}`);
     io.to(roomId).emit("messageReceived", userName, message);
   });
 
   // クライアントからの切断イベントをリッスン
-  socket.on("disconnect", () => {
-    const user = users.get(socket.id);
-    if (user) {
-      rooms.get(user.room).delete(socket.id);
-      users.delete(socket.id);
-      socket.leave(user.room);
-      console.log(
-        `ユーザー "${user.name}" がルーム "${user.room}" から退出しました`
-      );
-    }
-  });
+  // socket.on("disconnect", () => {
+  //   const user = users.get(socket.id);
+  //   if (user) {
+  //     rooms.get(user.room).delete(socket.id);
+  //     users.delete(socket.id);
+  //     socket.leave(user.room);
+  //     console.log(
+  //       `ユーザー "${user.name}" がルーム "${user.room}" から退出しました`
+  //     );
+  //   }
+  // });
 });
 
 server.listen(3001, () => {

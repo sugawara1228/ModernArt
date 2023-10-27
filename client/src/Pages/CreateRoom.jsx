@@ -25,7 +25,7 @@ function CreateRoom() {
     socket.emit('createRoom', roomId, userName);
 
     // メイン画面に移動
-    navigate('/Main');
+    navigate('/room/' + roomId);
   };
 
   const randomRoomIdCreate = () => {
