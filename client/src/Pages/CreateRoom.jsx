@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Flex,
   Button,
@@ -10,11 +10,11 @@ import {
 } from '@chakra-ui/react';
 import Gbox from '../Components/GlassBox';
 import { useNavigate } from 'react-router-dom';
-import io from 'socket.io-client';
+import { SocketContext } from '../index';
 
-const socket = io('http://localhost:3001');
 
 function CreateRoom() {
+  const socket = useContext(SocketContext);
   const [userName, setUserName] = useState('');
   const navigate = useNavigate();
 

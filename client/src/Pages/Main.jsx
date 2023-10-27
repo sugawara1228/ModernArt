@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Flex,
   Button,
@@ -9,13 +9,12 @@ import {
   Box,
 } from '@chakra-ui/react';
 import Gbox from '../Components/GlassBox';
-import io from 'socket.io-client';
 import { useRecoilState } from 'recoil';
 import { userDataState } from '../state/userDataState';
-
-const socket = io('http://localhost:3001');
+import { SocketContext } from '../index';
 
 function Main() {
+  const socket = useContext(SocketContext);
   const [message, setMessage] = useState('');
   const [userName, setUserName] = useState('');
   const [roomId, setRoomId] = useState('');

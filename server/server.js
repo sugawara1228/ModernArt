@@ -45,7 +45,7 @@ io.on("connection", (socket) => {
 //     }
 //   });
 
-  // クライアントからのメッセージをルーム内のクライアントにブロードキャスト
+  // クライアントからのメッセージをルーム内にいる全員に送信
   socket.on("sendMessage", (roomId, userName, message) => {
     // const user = users.get(socket.id);
     console.log(`socket.id:${socket.id}roomID${roomId}に入室している${userName}がメッセージを送信しました。${message}`);
