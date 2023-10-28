@@ -28,27 +28,34 @@ function Room() {
   const [userName, setUserName] = useState('');
   const [roomId, setRoomId] = useState('');
   const [messageList, setMessageList] = useState([]);
-  const [joinedPlayer, setJoinedPlayer] = useState(0);
+  const [joinedUsers, setJoinedUsers] = useState(0);
   const [joinFlg, setJoinFlg] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = useRef();
-  const inputRef = useRef();
   const { onCopy, value, setValue, hasCopied } = useClipboard("");
   
   const addPath = window.location.href;
   
 
     useEffect(() => {
+        // サーバーからのメッセージ受信通知
         socket.on('messageReceived', (sendName, message) => {
             setMessageList((prevMessageList) => [...prevMessageList, sendName + ': ' + message]);
         });
 
-        socket.on('roomJoined', (roomId, userName) => {
-            setRoomId(roomId);
-            setUserName(userName);
-            setMessageList((prevMessageList) => [...prevMessageList, userName + 'が入室しました']);
-            setJoinedPlayer(joinedPlayer + 1);
+        // サーバーからのルーム入室通知
+        socket.on('roomJoined', (rooms, users) => {
+            setRoomId(users.roomId);
+            setUserName(users.name);
+            setMessageList((prevMessageList) => [...prevMessageList, users.name + 'が入室しました。']);
+            setJoinedUsers(rooms.users.length);
             setJoinFlg(true);
+        });
+
+        // サーバーからのルーム退出通知
+        socket.on('leaveRoom', (rooms, users) => {
+            setMessageList((prevMessageList) => [...prevMessageList, users.name + 'が退出しました。']);
+            setJoinedUsers(rooms.users.length);
         });
 
         setValue(addPath);
@@ -80,7 +87,7 @@ function Room() {
                     <span class="material-symbols-outlined">
                         person
                     </span>
-                    {joinedPlayer}
+                    {joinedUsers}
                 </Button>
             </Flex>
             <AlertDialog
@@ -151,12 +158,12 @@ function Room() {
             </Flex>
         </Box>
         ) : (
-            <Flex
-            height="100vh"
-            justifyContent="center"
-            alignItems="center"
-            flexDirection="column"
-            >
+        <Flex
+        height="100vh"
+        justifyContent="center"
+        alignItems="center"
+        flexDirection="column"
+        >
             <Gbox>
                 <Text as="b">名前を入力して、ルームに入室してください</Text>
                 <Input
@@ -176,7 +183,7 @@ function Room() {
                 ルームに入室
                 </Button>
             </Gbox>
-            </Flex>
+        </Flex>
         )}
         </>
     );

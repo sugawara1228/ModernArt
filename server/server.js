@@ -12,60 +12,119 @@ const io = socketIo(server, {
 });
 
 // roomオブジェクトを格納する配列
-const rooms = [];
+let rooms = [];
 // userオブジェクトを格納する配列
-const users = {};
+let users = [];
 
 // クライアントからの接続イベントをリッスン
 io.on("connection", (socket) => {
-  console.log(`${socket.id}クライアントが接続しました`);
+  console.log(`クライアントが接続しました。socket.id:"${socket.id}"`);
 
-  // ルーム作成
+  /** ルーム作成処理 */
   socket.on("createRoom", (roomId, userName) => {
-    users[socket.id] = {
+
+    // 以前のルーム作成・入室したときのデータを探す
+    const oldUserData = users.find(user => user.userId === socket.id);
+
+    // もし前のデータがあった場合、先にデータ削除＆ルーム退出処理を行う
+    if(oldUserData) {
+      rooms[oldUserData.roomId].users = rooms[oldUserData.roomId].users.filter(user => user !== socket.id);
+      users = users.filter(user => user.userId !== socket.id);
+      // ユーザーを古いルームから退出させる。
+      socket.leave(oldUserData.roomId);
+
+      // ルームに退出通知を送る
+      io.to(oldUserData.roomId).emit("leaveRoom", rooms[oldUserData.roomId], oldUserData);
+
+      console.log(`"${oldUserData.name}"がルーム:"${oldUserData.roomId}"から退出しました。`);
+    }
+
+    // ユーザー情報
+    const user = {
+      userId: socket.id,
       roomId: roomId,
       name: userName
     }
-    // ルーム作成
+    users.push(user);
+
+    // ルーム情報
+    rooms[roomId] = {
+      users: [socket.id],
+      turnIndex: 0
+    };
+
+    // ルームを作成
     socket.join(roomId);
+
     // クライアントにルーム作成完了を通知
-    socket.emit("roomJoined", roomId, userName);
-    console.log(`socket.id:${socket.id}ユーザー "${userName}" がルーム "${roomId}" を作成しました`);
+    socket.emit("roomJoined", rooms[roomId], user);
+    console.log(`socket.id:"${socket.id}"のユーザー "${userName}" がルーム "${roomId}" を作成しました`);
   });
 
-  // ルームへの入室
+  /** ルーム入室処理 */
   socket.on("joinRoom", (roomId, userName) => {
-    users[socket.id] = {
+
+    // 以前作成・入室したルームが残っている場合は先に削除する
+    const oldUserData = users.find(user => user.userId === socket.id);
+    if(oldUserData) {
+      rooms[oldUserData.roomId].users = rooms[oldUserData.roomId].users.filter(user => user !== socket.id);
+      users = users.filter(user => user.userId !== socket.id);
+
+      // ユーザーを古いルームから退出させる。
+      socket.leave(oldUserData.roomId);
+      // ルームに退出通知を送る
+      io.to(oldUserData.roomId).emit("leaveRoom", rooms[oldUserData.roomId], oldUserData);
+      
+      console.log(`"${oldUserData.name}"がルーム:"${oldUserData.roomId}"から退出しました。`);
+    }
+
+    // ユーザー情報追加
+    const user = {
+      userId: socket.id,
       roomId: roomId,
       name: userName
     }
+    users.push(user);
+
+    // ルーム情報追加
+    if(rooms[roomId]) {
+      rooms[roomId].users.push(socket.id);
+    };
+
     //ルームに入室
     socket.join(roomId);
+
     // クライアントにルーム作成完了を通知
-    io.to(roomId).emit("roomJoined", roomId, userName);
-    console.log(`socket.id:${socket.id}ユーザー "${userName}" がルーム "${roomId}" に入室しました`);
+    io.to(roomId).emit("roomJoined", rooms[roomId], user);
+    console.log(`socket.id:"${socket.id}"のユーザー "${userName}" がルーム "${roomId}" に入室しました`);
   });
 
-  // クライアントからのメッセージをルーム内にいる全員に送信
+  /** メッセージを受信し、ルーム内の全員に送信する */
   socket.on("sendMessage", (message) => {
-    roomId = users[socket.id].roomId;
-    userName = users[socket.id].name;
-    console.log(`roomID${roomId}に入室している${userName}がメッセージを送信しました。${message}`);
+
+    // メッセージの送信元のsocket.idから、ユーザー情報を取得
+    const user = users.find(user => user.userId === socket.id);
+
+    // ユーザ情報から、今いるルームidと名前を取得
+    const roomId = user.roomId;
+    const userName = user.name;
+
+    // ルーム内の全員に送信
     io.to(roomId).emit("messageReceived", userName, message);
+    console.log(`roomID${roomId}に入室している${userName}がメッセージを送信しました。${message}`);
   });
 
-  // クライアントからの切断イベントをリッスン
-  // socket.on("disconnect", () => {
-  //   const user = users.get(socket.id);
-  //   if (user) {
-  //     rooms.get(user.room).delete(socket.id);
-  //     users.delete(socket.id);
-  //     socket.leave(user.room);
-  //     console.log(
-  //       `ユーザー "${user.name}" がルーム "${user.room}" から退出しました`
-  //     );
-  //   }
-  // });
+  /** クライアントからの切断イベントをリッスン */
+  socket.on("disconnect", () => {
+    const user = users.find(user => user.userId === socket.id);
+    if (user) {
+      rooms[user.roomId].users = rooms[user.roomId].users.filter(user => user !== socket.id);
+      users = users.filter(user => user.userId !== socket.id);
+
+      socket.leave(user.roomId);
+      console.log(`ユーザー "${user.name}" がルーム "${user.roomId}" から退出しました`);
+    }
+  });
 });
 
 server.listen(3001, () => {
