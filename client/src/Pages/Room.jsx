@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext,useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import {
   Flex,
   Button,
@@ -21,6 +21,7 @@ import Gbox from '../Components/GlassBox';
 import { useRecoilState } from 'recoil';
 import { userDataState } from '../state/userDataState';
 import { SocketContext } from '../index';
+import { useNavigate } from 'react-router-dom';
 
 function Room() {
   const socket = useContext(SocketContext);
@@ -30,9 +31,14 @@ function Room() {
   const [messageList, setMessageList] = useState([]);
   const [joinedUsers, setJoinedUsers] = useState(0);
   const [joinFlg, setJoinFlg] = useState(false);
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const addModal = useDisclosure();
+  const leaveModal = useDisclosure();
   const cancelRef = useRef();
   const { onCopy, value, setValue, hasCopied } = useClipboard("");
+  const navigate = useNavigate();
+  const blockBrowserBack = useCallback(() => {
+    window.history.go(1)
+  }, [])
   
   const addPath = window.location.href;
   
@@ -61,6 +67,20 @@ function Room() {
         setValue(addPath);
         
     },[]);
+
+    /** ブラウザバックの禁止 */
+    useEffect(() => {
+        // 直前の履歴に現在のページを追加
+        window.history.pushState(null, '', window.location.href)
+    
+        // 直前の履歴と現在のページのループ
+        window.addEventListener('popstate', blockBrowserBack)
+    
+        // クリーンアップ
+        return () => {
+            window.removeEventListener('popstate', blockBrowserBack)
+        }
+    }, [blockBrowserBack])
     
     const sendMessage = () => {
         socket.emit('sendMessage', message);
@@ -75,13 +95,20 @@ function Room() {
         socket.emit('joinRoom', roomId, userName);
     }
 
+    const leaveRoom = () => {
+        socket.emit('leaveRoom');
+
+        // top画面に移動
+        navigate('/');
+    }
+
     return (
         <>
         { joinFlg ? (
         
         <Box>
-            <Flex height="10%" justifyContent="start" alignItems="center" p="10">
-                <Button onClick={onOpen} colorScheme='yellow' borderRadiu="30px" w="12rem"
+            <Flex height="10%" justify="space-between" align="center" p="10">
+                <Button onClick={addModal.onOpen} colorScheme='yellow' borderRadiu="30px" w="12rem"
                 size="lg">
                     招待
                     <span class="material-symbols-outlined">
@@ -89,11 +116,11 @@ function Room() {
                     </span>
                     {joinedUsers}
                 </Button>
-            </Flex>
+            
             <AlertDialog
-                isOpen={isOpen}
+                isOpen={addModal.isOpen}
                 leastDestructiveRef={cancelRef}
-                onClose={onClose}
+                onClose={addModal.onClose}
             >
                 <AlertDialogOverlay>
                 <AlertDialogContent>
@@ -112,7 +139,7 @@ function Room() {
                     </AlertDialogBody>
 
                     <AlertDialogFooter>
-                    <Button ref={cancelRef} onClick={onClose}>
+                    <Button ref={cancelRef} onClick={addModal.onClose}>
                         閉じる
                     </Button>
                     <Button colorScheme='yellow' onClick={onCopy} ml={3}>
@@ -122,6 +149,37 @@ function Room() {
                 </AlertDialogContent>
                 </AlertDialogOverlay>
             </AlertDialog>
+            <Button onClick={leaveModal.onOpen} colorScheme='yellow' borderRadiu="30px" w="10rem"
+                size="lg">
+                    ルーム退出
+            </Button>
+            <AlertDialog
+                isOpen={leaveModal.isOpen}
+                leastDestructiveRef={cancelRef}
+                onClose={leaveModal.onClose}
+            >
+                <AlertDialogOverlay>
+                <AlertDialogContent>
+                    <AlertDialogHeader fontSize='lg' fontWeight='bold'>
+                    ルームの退出
+                    </AlertDialogHeader>
+
+                    <AlertDialogBody>
+                        ルームを退出しますか？
+                    </AlertDialogBody>
+
+                    <AlertDialogFooter>
+                    <Button ref={cancelRef} onClick={leaveModal.onClose}>
+                        キャンセル
+                    </Button>
+                    <Button onClick={leaveRoom} colorScheme='red'  ml={3}>
+                        退出
+                    </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+                </AlertDialogOverlay>
+            </AlertDialog>
+            </Flex>
             <Flex height="80vh" justifyContent="end" alignItems="center" py="50" px="10">
                 <Gbox w="20%" h="100%" justifyContent="flex-start">
                     <Text>ルームID:{roomId}</Text>

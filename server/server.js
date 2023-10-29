@@ -28,15 +28,9 @@ io.on("connection", (socket) => {
 
     // もし前のデータがあった場合、先にデータ削除＆ルーム退出処理を行う
     if(oldUserData) {
-      rooms[oldUserData.roomId].users = rooms[oldUserData.roomId].users.filter(user => user !== socket.id);
-      users = users.filter(user => user.userId !== socket.id);
-      // ユーザーを古いルームから退出させる。
-      socket.leave(oldUserData.roomId);
-
-      // ルームに退出通知を送る
-      io.to(oldUserData.roomId).emit("leaveRoom", rooms[oldUserData.roomId], oldUserData);
-
-      console.log(`"${oldUserData.name}"がルーム:"${oldUserData.roomId}"から退出しました。`);
+      console.log(`socket.id: "${socket.id}のユーザーの以前のデータが残っています。`);
+      console.log('以前のデータの削除、退出処理を実行します');
+      leaveRoom(socket);
     }
 
     // ユーザー情報
@@ -67,15 +61,9 @@ io.on("connection", (socket) => {
     // 以前作成・入室したルームが残っている場合は先に削除する
     const oldUserData = users.find(user => user.userId === socket.id);
     if(oldUserData) {
-      rooms[oldUserData.roomId].users = rooms[oldUserData.roomId].users.filter(user => user !== socket.id);
-      users = users.filter(user => user.userId !== socket.id);
-
-      // ユーザーを古いルームから退出させる。
-      socket.leave(oldUserData.roomId);
-      // ルームに退出通知を送る
-      io.to(oldUserData.roomId).emit("leaveRoom", rooms[oldUserData.roomId], oldUserData);
-      
-      console.log(`"${oldUserData.name}"がルーム:"${oldUserData.roomId}"から退出しました。`);
+      console.log(`socket.id: "${socket.id}のユーザーの以前のデータが残っています。`);
+      console.log('以前のデータの削除、退出処理を実行します');
+      leaveRoom(socket);
     }
 
     // ユーザー情報追加
@@ -114,18 +102,38 @@ io.on("connection", (socket) => {
     console.log(`roomID${roomId}に入室している${userName}がメッセージを送信しました。${message}`);
   });
 
+  /** クライアントからの退出イベントをリッスン */
+  socket.on("leaveRoom", () => {
+    console.log(`socket.id:"${socket.id}"が退出ボタンを押下しました。`);
+    console.log('退出処理を実行します');
+    leaveRoom(socket);
+  });
+
   /** クライアントからの切断イベントをリッスン */
   socket.on("disconnect", () => {
-    const user = users.find(user => user.userId === socket.id);
-    if (user) {
-      rooms[user.roomId].users = rooms[user.roomId].users.filter(user => user !== socket.id);
-      users = users.filter(user => user.userId !== socket.id);
-
-      socket.leave(user.roomId);
-      console.log(`ユーザー "${user.name}" がルーム "${user.roomId}" から退出しました`);
-    }
+    console.log(`socket.id:"${socket.id}"の接続が切れました。`);
+    console.log('退出処理を実行します');
+    leaveRoom(socket);
   });
 });
+
+
+/** 
+ * ルーム退出処理  
+ * socket.idを受け取り、該当ユーザを退出させデータから削除する
+ */
+function leaveRoom(socket) {
+  const user = users.find(user => user.userId === socket.id);
+  if (user) {
+    rooms[user.roomId].users = rooms[user.roomId].users.filter(user => user !== socket.id);
+    users = users.filter(user => user.userId !== socket.id);
+
+    io.to(user.roomId).emit("leaveRoom", rooms[user.roomId], user);
+
+    socket.leave(user.roomId);
+    console.log(`ユーザー "${user.name}" がルーム "${user.roomId}" から退出しました`);
+  }
+}
 
 server.listen(3001, () => {
   console.log("サーバーがポート3001で実行中");
