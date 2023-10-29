@@ -22,11 +22,13 @@ import { useRecoilState } from 'recoil';
 import { userDataState } from '../state/userDataState';
 import { SocketContext } from '../index';
 import { useNavigate } from 'react-router-dom';
+import { userNameValidation } from '../utility/validation';
 
 function Room() {
   const socket = useContext(SocketContext);
   const [message, setMessage] = useState('');
   const [userName, setUserName] = useState('');
+  const [nameError, setNameError] = useState('');
   const [roomId, setRoomId] = useState('');
   const [messageList, setMessageList] = useState([]);
   const [joinedUsers, setJoinedUsers] = useState(0);
@@ -42,7 +44,6 @@ function Room() {
   
   const addPath = window.location.href;
   
-
     useEffect(() => {
         // サーバーからのメッセージ受信通知
         socket.on('messageReceived', (sendName, message) => {
@@ -84,15 +85,21 @@ function Room() {
     
     const sendMessage = () => {
         socket.emit('sendMessage', message);
+        setMessage('');
     };
 
     const joinRoom = () => {
-        // 現在いるパスからroomIdを取り出してroomに入室する
-        const currentPath = window.location.pathname;
-        const pathSegments = currentPath.split('/');
-        const roomId = pathSegments[pathSegments.length - 1];
+        if(userNameValidation(userName)) {
+            // 入力チェック
+            setNameError(userNameValidation(userName));
+        } else {
+            // 現在いるパスからroomIdを取り出してroomに入室する
+            const currentPath = window.location.pathname;
+            const pathSegments = currentPath.split('/');
+            const roomId = pathSegments[pathSegments.length - 1];
 
-        socket.emit('joinRoom', roomId, userName);
+            socket.emit('joinRoom', roomId, userName);
+         } 
     }
 
     const leaveRoom = () => {
@@ -130,7 +137,7 @@ function Room() {
 
                     <AlertDialogBody>
                         このリンクを送信して、プレイヤーを招待できます。<br />
-                        <Input 
+                        <Input
                         value={value}
                         isReadOnly 
                         w="80%" 
@@ -206,6 +213,7 @@ function Room() {
                             top="38%"
                             transform="translateY(-38%)"
                             bg="none"
+                            
                             _hover={{ bg: 'none' }}
                             >
                             <span class="material-symbols-outlined green">send</span>
@@ -229,14 +237,28 @@ function Room() {
                 placeholder="ニックネーム"
                 w="22rem"
                 mt="5"
-                mb="35"
                 />
+                <Text color="red" textAlign="left" w="22rem" mt="1" fontSize="sm">
+                    
+                    {nameError && 
+                    <Text mt="1">
+                        <span class="material-symbols-outlined md-18">
+                            cancel
+                        </span>
+                        <Box as="span" verticalAlign="top" ml="1">
+                        {nameError}
+                        </Box>
+                        
+                    </Text>
+                    }
+                </Text>
                 <Button
                 onClick={joinRoom}
                 colorScheme="yellow"
                 w="22rem"
                 size="lg"
                 border="none"
+                mt="35"
                 >
                 ルームに入室
                 </Button>

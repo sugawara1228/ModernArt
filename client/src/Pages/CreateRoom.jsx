@@ -11,6 +11,7 @@ import {
 import Gbox from '../Components/GlassBox';
 import { useNavigate } from 'react-router-dom';
 import { SocketContext } from '../index';
+import { userNameValidation } from '../utility/validation';
 
 
 function CreateRoom() {
@@ -20,13 +21,10 @@ function CreateRoom() {
   const navigate = useNavigate();
 
   const createRoom = () => {
-    // 入力チェック
-    if(!userName) {
-      setNameError('ニックネームを入力してください');
-    } else if(userName.trim() === ''){
-      setNameError('空白のみの入力はできません');
-    } else if(userName.length >= 11) {
-      setNameError('ニックネームは10文字以下で入力してください');
+    
+    if(userNameValidation(userName)) {
+      // 入力チェック
+      setNameError(userNameValidation(userName));
     } else {
       // ランダムなルームIDを生成
       const roomId = randomRoomIdCreate();
@@ -61,6 +59,9 @@ function CreateRoom() {
           mt="5"
         />
         <Text color="red">
+        <span class="material-symbols-outlined">
+          cancel
+        </span>
           {nameError && <p>{nameError}</p>}
         </Text>
         
