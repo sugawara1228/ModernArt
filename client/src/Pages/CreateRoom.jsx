@@ -16,16 +16,27 @@ import { SocketContext } from '../index';
 function CreateRoom() {
   const socket = useContext(SocketContext);
   const [userName, setUserName] = useState('');
+  const [nameError, setNameError] = useState('');
   const navigate = useNavigate();
 
   const createRoom = () => {
-    // ランダムなルームIDを生成
-    const roomId = randomRoomIdCreate();
-    // ルーム作成API呼び出し
-    socket.emit('createRoom', roomId, userName);
+    // 入力チェック
+    if(!userName) {
+      setNameError('ニックネームを入力してください');
+    } else if(userName.trim() === ''){
+      setNameError('空白のみの入力はできません');
+    } else if(userName.length >= 11) {
+      setNameError('ニックネームは10文字以下で入力してください');
+    } else {
+      // ランダムなルームIDを生成
+      const roomId = randomRoomIdCreate();
+      // ルーム作成API呼び出し
+      socket.emit('createRoom', roomId, userName);
 
-    // メイン画面に移動
-    navigate('/room/' + roomId);
+      // メイン画面に移動
+      navigate('/room/' + roomId);
+    }
+    
   };
 
   const randomRoomIdCreate = () => {
@@ -48,14 +59,18 @@ function CreateRoom() {
           placeholder="ニックネーム"
           w="22rem"
           mt="5"
-          mb="35"
         />
+        <Text color="red">
+          {nameError && <p>{nameError}</p>}
+        </Text>
+        
         <Button
           onClick={createRoom}
           colorScheme="yellow"
           w="22rem"
           size="lg"
           border="none"
+          mt="35"
         >
           ルームを作成
         </Button>
